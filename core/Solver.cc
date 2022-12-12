@@ -1398,6 +1398,12 @@ Lit Solver::pickBranchLit()
 {
     Var next = var_Undef;
 
+    if (hints.size() > 0) {
+        Lit n = hints.last();
+        hints.pop();
+        return n;
+    }
+
     // Random decision:
     if (drand(random_seed) < random_var_freq && !order_heap.empty()){
         next = order_heap[irand(random_seed,order_heap.size())];

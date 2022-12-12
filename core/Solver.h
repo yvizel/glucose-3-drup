@@ -29,6 +29,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef Glucose_Solver_h
 #define Glucose_Solver_h
 
+#include "glucose/mtl/Queue.h"
 #include "glucose/mtl/Vec.h"
 #include "glucose/mtl/Heap.h"
 #include "glucose/mtl/Alg.h"
@@ -217,6 +218,9 @@ public:
 
     inline bool isSelector(Var v) const {return (incremental && selector[v]);}
 
+    /// -- Set hints
+    void setHints(vec<Lit> & h) {hints.clear(); h.moveTo(hints); }
+
 protected:
     long curRestart;
     // Helper structures:
@@ -366,6 +370,10 @@ protected:
     double totalTime4Sat,totalTime4Unsat;
     int nbSatCalls,nbUnsatCalls;
     vec<int> assumptionPositions,initialPositions;
+
+    // -- Hints for decisions
+    // -- Used for an incremental satisfying assignment construction
+    vec<Lit> hints;      // Current set of assigned literals
 
 
     // Main internal methods:
