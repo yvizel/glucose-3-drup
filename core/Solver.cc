@@ -1399,6 +1399,7 @@ Lit Solver::pickBranchLit()
     Var next = var_Undef;
 
     if (hints.size() > 0) {
+        while (value(hints.last()) != l_Undef) hints.pop();
         Lit n = hints.last();
         hints.pop();
         return n;
