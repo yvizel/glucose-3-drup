@@ -1452,6 +1452,8 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
 
     if (log_proof) part = ca [confl].part ();
 
+    if (hints.size() > 0) hints.clear();
+
     do{
         assert(confl != CRef_Undef); // (otherwise should be UIP)
         Clause& c = ca[confl];
