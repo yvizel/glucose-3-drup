@@ -81,6 +81,9 @@ public:
     void    toDimacs     (FILE* f, const vec<Lit>& assumps);            // Write CNF to file in DIMACS-format.
     void    toDimacs     (const char *file, const vec<Lit>& assumps);
     void    toDimacs     (FILE* f, Clause& c, vec<Var>& map, Var& max);
+    // Dump in DIMACS using the solver's own (raw) variable numbers, so the
+    // file matches external mappings such as the unroller provenance dump.
+    void    toDimacsRaw  (const char *file, const vec<Lit>& assumps);
 
     // Proof validation / traversal
     bool    validate ();  // validates clausal proof

@@ -2389,6 +2389,37 @@ void Solver::toDimacs(const char *file, const vec<Lit>& assumps)
 }
 
 
+// Dump the clause database in DIMACS using the solver's own variable numbers
+// (no compaction / renumbering), so variable ids match external mappings such
+// as the unroller provenance dump. Emits every clause with all its literals,
+// the level-0 trail units, and the caller assumptions as units.
+void Solver::toDimacsRaw(const char *file, const vec<Lit>& assumps)
+{
+    FILE* f = fopen(file, "wr");
+    if (f == NULL)
+        fprintf(stderr, "could not open file %s\n", file), exit(1);
+    if (!ok){ fprintf(f, "p cnf 1 2\n1 0\n-1 0\n"); fclose(f); return; }
+
+    int nTop = (trail_lim.size() == 0) ? trail.size() : trail_lim[0];
+    int cnt  = clauses.size() + nTop + assumps.size();
+    // variables are 0..nVars()-1; the unroller never uses var 0, so all
+    // emitted ids are >= 1 (valid DIMACS). Declare nVars() as an upper bound.
+    fprintf(f, "p cnf %d %d\n", nVars(), cnt);
+
+    for (int i = 0; i < nTop; i++)
+        fprintf(f, "%s%d 0\n", sign(trail[i]) ? "-" : "", var(trail[i]));
+    for (int i = 0; i < assumps.size(); i++)
+        fprintf(f, "%s%d 0\n", sign(assumps[i]) ? "-" : "", var(assumps[i]));
+    for (int i = 0; i < clauses.size(); i++) {
+        Clause& c = ca[clauses[i]];
+        for (int j = 0; j < c.size(); j++)
+            fprintf(f, "%s%d ", sign(c[j]) ? "-" : "", var(c[j]));
+        fprintf(f, "0\n");
+    }
+    fclose(f);
+}
+
+
 void Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 {
     // Handle case when solver is in contradictory state:
