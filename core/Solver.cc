@@ -2398,29 +2398,43 @@ void Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 
     vec<Var> map; Var max = 0;
 
-    // Cannot use removeClauses here because it is not safe
-    // to deallocate them at this point. Could be improved.
-    int cnt = 0;
-    for (int i = 0; i < clauses.size(); i++)
-        if (!satisfied(ca[clauses[i]]))
-            cnt++;
+    // -- the final loop below writes every clause, so the count and the
+    // -- variable map must cover all of them (not just unsatisfied ones)
+    int cnt = clauses.size();
+    for (int i = 0; i < clauses.size(); i++){
+        Clause& c = ca[clauses[i]];
+        for (int j = 0; j < c.size(); j++)
+            if (value(c[j]) != l_False)
+                mapVar(var(c[j]), map, max);
+    }
 
-    for (int i = 0; i < clauses.size(); i++)
-        if (!satisfied(ca[clauses[i]])){
-            Clause& c = ca[clauses[i]];
-            for (int j = 0; j < c.size(); j++)
-                if (value(c[j]) != l_False)
-                    mapVar(var(c[j]), map, max);
-        }
+    // -- Unit clauses asserted at decision level 0 live on the trail, not
+    // -- in `clauses` (addClause enqueues units directly). Emit them so the
+    // -- dumped formula includes facts such as the initial-state units;
+    // -- without them the dump is strictly weaker than what solve() sees.
+    int nTop = (trail_lim.size() == 0) ? trail.size() : trail_lim[0];
+    for (int i = 0; i < nTop; i++)
+        mapVar(var(trail[i]), map, max);
 
     // Assumptions are added as unit clauses:
-    cnt += assumptions.size();
+    // -- use the caller-supplied assumptions (not the member `assumptions`,
+    // -- which is only populated during solve) and map their variables
+    // -- before writing the header so `max` accounts for assumption-only
+    // -- variables -- otherwise the header understates the variable count
+    // -- and the file is invalid DIMACS.
+    cnt += nTop + assumps.size();
+
+    for (int i = 0; i < assumps.size(); i++)
+        mapVar(var(assumps[i]), map, max);
 
     fprintf(f, "p cnf %d %d\n", max, cnt);
 
-    for (int i = 0; i < assumptions.size(); i++){
-        assert(value(assumptions[i]) != l_False);
-        fprintf(f, "%s%d 0\n", sign(assumptions[i]) ? "-" : "", mapVar(var(assumptions[i]), map, max)+1);
+    for (int i = 0; i < nTop; i++)
+        fprintf(f, "%s%d 0\n", sign(trail[i]) ? "-" : "", mapVar(var(trail[i]), map, max)+1);
+
+    for (int i = 0; i < assumps.size(); i++){
+        assert(value(assumps[i]) != l_False);
+        fprintf(f, "%s%d 0\n", sign(assumps[i]) ? "-" : "", mapVar(var(assumps[i]), map, max)+1);
     }
 
     for (int i = 0; i < clauses.size(); i++)
